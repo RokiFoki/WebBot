@@ -1,14 +1,17 @@
 from webbot import WebBot
+import re
 
 
 with WebBot() as wb:
 
     response = wb.connect("www.google.com/")
-    site = wb.get_content()
 
-    wb.search("Linkedin Roko Krstulovic", title="Traži")
+    wb.search("Roko Krstulović", title="Traži")
+    wb.click(string=re.compile("Professional Profile"), driver=True)
+    content = wb.get_content()
+    wb.wait(10)
+    print(content)
 
-    print(site)
 
 
 """

@@ -4,6 +4,10 @@ import time
 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import TimeoutException
 
 
 class WebBot:
@@ -50,12 +54,21 @@ class WebBot:
     def __get(self):
         return self.session.get(self.url, headers=self.headers)
 
+    def driver_connect(self):
+        if not self.driver:
+            self.driver = webdriver.Firefox()
+
+        self.driver.get(self.url)
+
     def connect(self, url, driver=False):
         self.__clear()
 
         try:
             self.url = url
             self.response = self.__get()
+
+            if driver:
+                self.driver_connect()
             return self.response
         except requests.exceptions.MissingSchema:
             pass
@@ -64,6 +77,9 @@ class WebBot:
             protocol, domain, rest = self.__split_url()
             self.url = "http://" + domain + rest
             self.response = self.__get()
+
+            if driver:
+                self.driver_connect()
             return self.response
         except requests.exceptions.MissingSchema:
             pass
@@ -72,10 +88,8 @@ class WebBot:
         self.url = "https://" + domain + rest
         self.response = self.__get()
 
-        if not self.driver:
-            self.driver = webdriver.Firefox()
-
-        self.driver.get(self.url)
+        if driver:
+            self.driver_connect()
 
         return self.response
 
@@ -91,8 +105,8 @@ class WebBot:
         if self.driver:
             if self.driver:
                 page_source = self.driver.page_source
-                soup = BeautifulSoup(page_source, "html5lib")
-                return soup
+                self.soup = BeautifulSoup(page_source, "html5lib")
+                return self.soup
 
         self.soup = BeautifulSoup(self.get_response_content(url), parser)
         return self.soup
@@ -110,7 +124,7 @@ class WebBot:
         method = getattr(self.soup, method)
         return method(*list, **kwargs)
 
-    def goto(self, index=0, **kwargs):
+    def click(self, index=0, driver=False, **kwargs):
         if not self.soup:
             self.get_soup()
 
@@ -118,10 +132,11 @@ class WebBot:
         link = links[index].get('href')
 
         domain = self.__get_domain()
-        if not link.startswith(self.__get_domain()):
+        if not link.startswith("http://") and not link.startswith("https://") and \
+                not link.startswith("www.") and not link.startswith(self.__get_domain()):
             return self.connect(domain + link)
 
-        return self.connect(link)
+        return self.connect(link, driver)
 
     def search(self, input_text, path="", **kwargs):
         if not self.driver:
@@ -147,7 +162,15 @@ class WebBot:
         search.send_keys(input_text)
         search.send_keys(Keys.ENTER)
 
+        time.sleep(4)
+        try:
+           WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.TAG_NAME, 'title')))
+        except TimeoutException:
+            print("Loading took too much time!")
+
     def wait(self, seconds):
         time.sleep(seconds)
+
+
 
 

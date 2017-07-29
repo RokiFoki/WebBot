@@ -59,6 +59,7 @@ class WebBot:
             self.driver = webdriver.Firefox()
 
         self.driver.get(self.url)
+        WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.TAG_NAME, 'title')))
 
     def connect(self, url, driver=False):
         self.__clear()
@@ -138,39 +139,54 @@ class WebBot:
 
         return self.connect(link, driver)
 
-    def search(self, input_text, path="", **kwargs):
+    def __find_element(self, tag, path="", args={}):
+        def key_wrapper(key):
+            if key == "text":
+                return "text()"
+            return "@" + key
+
+        xpath = "{}//{}{}".format(
+            path,
+            tag,
+            "" if len(args) == 0
+            else "[{}]".format(
+                ",".join([
+                    "{}='{}'".format(
+                        key_wrapper(key), value
+                    )
+                    for key, value
+                    in args.items()
+                ])
+            )
+        )
+
+        print(xpath)
+
+        return self.driver.find_element_by_xpath(xpath)
+
+    def search(self, input_text, path="", submit=False, args={}):
         if not self.driver:
             self.driver = webdriver.Firefox()
 
         self.driver.get(self.url)
 
-        xpath = "{}//input{}".format(
-            path,
-            "" if len(kwargs) == 0
-            else "[{}]".format(
-                ",".join([
-                    "@{}='{}'".format(
-                        key, value
-                    )
-                    for key, value
-                    in kwargs.items()
-                ])
-            )
-        )
-
-        search = self.driver.find_element_by_xpath(xpath)
+        search = self.__find_element("input", path, args)
         search.send_keys(input_text)
-        search.send_keys(Keys.ENTER)
+        if submit:
+            search.submit()
 
-        time.sleep(4)
         try:
            WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.TAG_NAME, 'title')))
         except TimeoutException:
             print("Loading took too much time!")
 
-    def wait(self, seconds):
-        time.sleep(seconds)
+    def wait(self, sleep_time=0, driver_time=5, tag=None, path="", args={}):
+        time.sleep(sleep_time)
 
+        if tag:
+            WebDriverWait(self.driver, driver_time).until(
+                lambda x: self.__find_element(tag, path, args)
+            )
 
 
 

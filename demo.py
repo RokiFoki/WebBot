@@ -6,25 +6,9 @@ with WebBot() as wb:
 
     response = wb.connect("www.google.com/")
 
-    wb.search("Roko Krstulović", title="Traži")
+    wb.search("Roko Krstulović", args={"title": "Traži"}, submit=True)
+    wb.wait(tag="a")
     wb.click(string=re.compile("Professional Profile"), driver=True)
-    content = wb.get_content()
+    wb.wait(tag="a", args={"text": "Sign in"})
+    wb.click(string="Sign in", driver=True)
     wb.wait(10)
-    print(content)
-
-
-
-"""
-wb = WebBot()
-
-wb.connect("www.google.com")
-site = wb.get_content()
-print(site)
-
-wb.input(title="search", text="Linkedin Roko Krstulovic")
-wb.click(string="Google Search")
-
-site=wb.get_content()
-print(site)
-
-"""
